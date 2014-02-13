@@ -37,5 +37,6 @@ public class ChatServer implements MessageServerObserver, UserInputReaderObserve
     @Override
     public void onInput(String text) {
         if(text.equals("quit")) quit();
+        else messageServer.send("server:" +text);
     }
 }

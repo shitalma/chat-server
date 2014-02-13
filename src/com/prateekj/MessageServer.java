@@ -1,100 +1,61 @@
 package com.prateekj;
 
-import java.io.IOException;
-import java.net.ServerSocket;
-import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Scanner;
 
-public class MessageServer {
+public class MessageServer implements MessageClientObserver, SocketServerObserver {
     private final ChatFactory chatFactory;
+    private final SocketServer socketServer;
     private MessageServerObserver observer;
-    private ServerSocket serverSocket;
-    List<Socket> sockets = new ArrayList<>();
-    List<Thread> threads = new ArrayList<>();
+    List<MessageClient> clients = new ArrayList<>();
+
 
     public MessageServer(MessageServerObserver observer, ChatFactory chatFactory) {
         this.chatFactory = chatFactory;
         this.observer = observer;
+        this.socketServer = chatFactory.createSocketServer(this, this);
     }
 
     public MessageServer(MessageServerObserver observer) {
         this(observer, new ChatFactory());
     }
 
-    private void infiniteReadLoop(Socket socket){
-        Scanner scanner = null;
-        try {
-            scanner = new Scanner(socket.getInputStream());
-        } catch (IOException e) {
-            observer.onError(e);
-        }
-        while(scanner.hasNext())
-            observer.onMessage(scanner.nextLine());
-    }
-    private void infiniteAcceptLoop(){
-
-        do{
-            try {
-                Socket client = serverSocket.accept();
-                sockets.add(client);
-                createReadThread(client);
-            } catch (IOException e) {
-                observer.onError(e);
-            }
-        }while(true);
-
-    }
-
-    private void createReadThread(final Socket client) {
-        Thread thread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                infiniteReadLoop(client);
-            }
-        });
-        thread.start();
-        threads.add(thread);
-    }
-
-    public void start(){
-
-        try {
-            serverSocket = chatFactory.createServerSocket();
-
-        } catch (IOException e) {
-            throw new RuntimeException("Could not start server",e);
-        }
-        createAcceptThread();
-    }
-
-    private ServerSocket createServerSocket() throws IOException {
-        return chatFactory.createServerSocket();
-    }
-
-    private void createAcceptThread() {
-        Thread thread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                infiniteAcceptLoop();
-            }
-        });
-        thread.start();
-        threads.add(thread);
+    public void start() {
+        socketServer.start();
     }
 
     public void stop() {
-        try {
-            for (Thread thread : threads) {
-                thread.stop();
-            }
-            for (Socket socket : sockets)
-                socket.close();
+        for (MessageClient client : clients) client.stop();
+        socketServer.stop();
+    }
 
-            serverSocket.close();
-        } catch (IOException e) {
-            throw new RuntimeException("Could not close",e);
-        }
+    public void send(String message) {
+        for (MessageClient client : clients) client.send(message);
+    }
+
+    @Override
+    public void onNewConnection(MessageClient messageClient) {
+        clients.add(messageClient);
+    }
+
+    @Override
+    public void onError(Exception e) {
+        observer.onError(e);
+    }
+
+    @Override
+    public void onError(MessageClient client, Exception e) {
+        observer.onError(e);
+    }
+
+    @Override
+    public void onMessage(MessageClient client, String message) {
+        observer.onMessage(message);
+    }
+
+    @Override
+    public void onConnectionClosed(MessageClient client) {
+        client.stop();
+        clients.remove(client);
     }
 }
