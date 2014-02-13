@@ -17,7 +17,7 @@ public class ChatServerTest {
     }
     @Test
     public void showsNewMessageToUser(){
-        chatServer.onMessage("new message");
+         chatServer.onMessage("new message");
         verify(stub.userDisplay,times(1)).show("new message");
     }
     @Test(expected = RuntimeException.class)
