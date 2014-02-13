@@ -1,23 +1,22 @@
 package com.prateekj;
 
+public class ChatClient implements UserInputReaderObserver, MessageClientObserver {
+    private final UserInputReader inputReader;
+    private ChatFactory factory;
+    private MessageClient messageClient;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.PrintWriter;
-import java.net.Socket;
-import java.util.Scanner;
+    public ChatClient(ChatFactory factory) {
+        this.factory = factory;
+        inputReader = factory.createUserInputReader(this);
+    }
 
-public class ChatClient {
-    public static void main(String[] args) throws IOException {
-        String serverAddress = "127.0.0.1";
-        Scanner scanner = new Scanner(System.in);
-        Socket socket = new Socket(serverAddress,9090);
+    public void run() {
+        messageClient = factory.connectTo("127.0.0.1", this);
+        inputReader.start();
+    }
 
-        while(scanner.hasNext() ){
-            String message = scanner.nextLine();
-            OutputStream os = socket.getOutputStream();
-            PrintWriter pw = new PrintWriter(os,true);
-            pw.println(message);
-        }
+    @Override
+    public void onInput(String text) {
+        messageClient.send(text);
     }
 }

@@ -13,7 +13,6 @@ public class ChatServer implements MessageServerObserver, UserInputReaderObserve
     }
 
     public void run(){
-
         userInputReader.start();
         messageServer.start();
         System.out.println("started server:");
@@ -29,9 +28,14 @@ public class ChatServer implements MessageServerObserver, UserInputReaderObserve
         throw new RuntimeException("Gaya Paani Taalab mein",e);
     }
 
-    @Override
-    public void onQuit() {
+    private void quit() {
+        userInputReader.stop();
         messageServer.stop();
         userDisplay.exit();
+    }
+
+    @Override
+    public void onInput(String text) {
+        if(text.equals("quit")) quit();
     }
 }

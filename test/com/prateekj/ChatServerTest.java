@@ -27,8 +27,14 @@ public class ChatServerTest {
 
     @Test
     public void stopsMessageServerAndExitsUserDisplayOnQuit(){
-        chatServer.onQuit();
+        chatServer.onInput("quit");
         verify(stub.messageServer,times(1)).stop();
         verify(stub.userDisplay,times(1)).exit();
+    }
+    @Test
+    public void doesNotStopsMessageServerAndExitsUserDisplayOnAnythingOtherThanQuit(){
+        chatServer.onInput("whatever!");
+        verify(stub.messageServer,times(0)).stop();
+        verify(stub.userDisplay,times(0)).exit();
     }
 }
