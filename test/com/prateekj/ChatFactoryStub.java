@@ -9,18 +9,12 @@ public class ChatFactoryStub extends ChatFactory{
     public UserInputReader userInputReader = mock(UserInputReader.class);
     public MessageServer messageServer = mock(MessageServer.class);
     public UserDisplay userDisplay = mock(UserDisplay.class);
-    public MessageClient client = mock(MessageClient.class);
-    private SocketServer socketServer = mock(SocketServer.class);
+    public MessageChannel channel = mock(MessageChannel.class);
 
 
     @Override
-    public MessageClient connectTo(String serverAddress, MessageClientObserver observer) {
-        return client;
-    }
-
-    @Override
-    public SocketServer createSocketServer(SocketServerObserver observer, MessageClientObserver clientObserver) {
-        return socketServer;
+    public MessageChannel connectTo(String serverAddress, MessageChannelObserver observer) {
+        return channel;
     }
 
     @Override
@@ -34,7 +28,7 @@ public class ChatFactoryStub extends ChatFactory{
     }
 
     @Override
-    public MessageServer createMessageServer(MessageServerObserver observer) {
+    public MessageServer createMessageServer() {
         return messageServer;
     }
 

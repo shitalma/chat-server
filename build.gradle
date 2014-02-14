@@ -1,7 +1,7 @@
 apply plugin: 'java'
 apply plugin: 'idea'
 apply plugin: 'application'
-mainClassName = 'com.prateekj.ChatServerProgram'
+mainClassName = 'com.prateekj.Chat'
 group = "com.prateekj"
 version = "0.1"
 

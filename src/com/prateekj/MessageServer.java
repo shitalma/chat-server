@@ -1,61 +1,67 @@
 package com.prateekj;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.io.IOException;
+import java.net.ServerSocket;
 
-public class MessageServer implements MessageClientObserver, SocketServerObserver {
+public class MessageServer {
     private final ChatFactory chatFactory;
-    private final SocketServer socketServer;
     private MessageServerObserver observer;
-    List<MessageClient> clients = new ArrayList<>();
+    private ServerSocket serverSocket;
+    private boolean keepRunning = false;
+    private final Runnable runnable = new Runnable() {
+        @Override
+        public void run() {
+            infiniteAcceptLoop();
+        }
+    };
+    private Thread acceptThread;
 
+    private void infiniteAcceptLoop() {
+        try {
+            while (keepRunning) {
+                MessageChannel channel = chatFactory.acceptFrom(serverSocket);
+                if(channel!=null)
+                    observer.onNewConnection(channel);
+            }
+        } catch (Exception e) {
+            observer.onError(e);
+        }
+    }
 
-    public MessageServer(MessageServerObserver observer, ChatFactory chatFactory) {
+    public MessageServer(ChatFactory chatFactory) {
         this.chatFactory = chatFactory;
+        serverSocket = chatFactory.createServerSocket();
+    }
+
+    public void startListeningForConnections(MessageServerObserver observer) {
+        waitForStoppingExistingThread();
+        keepRunning = true;
         this.observer = observer;
-        this.socketServer = chatFactory.createSocketServer(this, this);
+        startAcceptThread();
     }
 
-    public MessageServer(MessageServerObserver observer) {
-        this(observer, new ChatFactory());
+    private void startAcceptThread() {
+        acceptThread = new Thread(runnable, "accept");
+        acceptThread.start();
     }
 
-    public void start() {
-        socketServer.start();
+    private void waitForStoppingExistingThread() {
+        if (keepRunning) {
+            keepRunning = false;
+            try {
+                acceptThread.join();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 
     public void stop() {
-        for (MessageClient client : clients) client.stop();
-        socketServer.stop();
-    }
-
-    public void send(String message) {
-        for (MessageClient client : clients) client.send(message);
-    }
-
-    @Override
-    public void onNewConnection(MessageClient messageClient) {
-        clients.add(messageClient);
-    }
-
-    @Override
-    public void onError(Exception e) {
-        observer.onError(e);
-    }
-
-    @Override
-    public void onError(MessageClient client, Exception e) {
-        observer.onError(e);
-    }
-
-    @Override
-    public void onMessage(MessageClient client, String message) {
-        observer.onMessage(message);
-    }
-
-    @Override
-    public void onConnectionClosed(MessageClient client) {
-        client.stop();
-        clients.remove(client);
+        waitForStoppingExistingThread();
+        try {
+            serverSocket.close();
+        } catch (IOException e) {
+            observer.onError(e);
+        }
     }
 }

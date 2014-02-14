@@ -33,7 +33,7 @@ public class UserInputReaderTest {
 
         UserInputReader reader = new UserInputReader(stub,scanner, observer);
         reader.start();
-        Thread.sleep(500);//To allow the UIR thread to start
+        Thread.sleep(500);//To allow the UIR thread to startListeningForConnections
         verify(observer, times(1)).onInput("anything");
     }
 }

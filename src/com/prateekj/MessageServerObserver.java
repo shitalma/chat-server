@@ -1,6 +1,6 @@
 package com.prateekj;
 
 public interface MessageServerObserver{
-    void onMessage(String message);
+    void onNewConnection(MessageChannel channel);
     void onError(Exception e);
 }

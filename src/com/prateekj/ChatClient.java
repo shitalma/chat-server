@@ -1,10 +1,10 @@
 package com.prateekj;
 
-public class ChatClient implements UserInputReaderObserver, MessageClientObserver {
+public class ChatClient implements UserInputReaderObserver, MessageChannelObserver {
     private final UserInputReader inputReader;
     private final UserDisplay userDisplay;
     private ChatFactory factory;
-    private MessageClient messageClient;
+    private MessageChannel channel;
 
     public ChatClient(ChatFactory factory) {
         this.factory = factory;
@@ -12,33 +12,34 @@ public class ChatClient implements UserInputReaderObserver, MessageClientObserve
         userDisplay = factory.createUserDisplay();
     }
 
-    public void run() {
-        messageClient = factory.connectTo("127.0.0.1", this);
+    public void run(String serverAddress) {
+        channel = factory.connectTo(serverAddress, this);
+        channel.startListeningForMessages(this);
         inputReader.start();
     }
 
     @Override
     public void onInput(String text) {
         if(text.equals("quit")) {
-            messageClient.stop();
+            channel.stop();
             userDisplay.exit();
         }
         else
-            messageClient.send(text);
+            channel.send(text);
     }
 
     @Override
-    public void onError(MessageClient client, Exception e) {
+    public void onError(MessageChannel client, Exception e) {
         throw new RuntimeException(e);
     }
 
     @Override
-    public void onMessage(MessageClient client, String message) {
-        userDisplay.show(message);
+    public void onMessage(MessageChannel client, Object message) {
+        userDisplay.show((String) message);
     }
 
     @Override
-    public void onConnectionClosed(MessageClient client) {
+    public void onConnectionClosed(MessageChannel client) {
         userDisplay.exit();
     }
 }

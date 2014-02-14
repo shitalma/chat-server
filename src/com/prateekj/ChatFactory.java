@@ -11,8 +11,8 @@ public class ChatFactory {
         return new UserInputReader(this,new SystemInputScanner(),observer);
     }
 
-    public MessageServer createMessageServer(MessageServerObserver observer) {
-        return new MessageServer(observer);
+    public MessageServer createMessageServer() {
+        return new MessageServer(this);
     }
     public UserDisplay createUserDisplay(){
         return new UserDisplay();
@@ -20,40 +20,38 @@ public class ChatFactory {
 
     private Socket connectTo(String serverAddress, int port) {
         try {
-            return new Socket(serverAddress,port);
+            Socket socket = new Socket(serverAddress, port);
+            socket.setSoTimeout(200);
+            return socket;
         } catch (IOException e) {
             throw new RuntimeException("could not connect to "+serverAddress+" at "+port,e);
         }
     }
-    private MessageClient createMessageClient(MessageClientObserver observer, Socket socket) {
-        MessageClient messageClient = new MessageClient(socket, observer);
-        messageClient.startReadThread();
-        return messageClient;
-    }
-    public MessageClient connectTo(String serverAddress, MessageClientObserver observer){
-        return createMessageClient(observer, connectTo(serverAddress, 9090));
+
+    public MessageChannel connectTo(String serverAddress, MessageChannelObserver observer){
+        return new MessageChannel(connectTo(serverAddress, 9090));
     }
 
-    public MessageClient acceptFrom(ServerSocket serverSocket, MessageClientObserver observer){
+    public MessageChannel acceptFrom(ServerSocket serverSocket){
         try {
-            serverSocket.setSoTimeout(100);
-            return createMessageClient(observer, serverSocket.accept());
+            Socket socket = serverSocket.accept();
+            socket.setSoTimeout(200);
+            return new MessageChannel(socket);
         }
-        catch (SocketTimeoutException se){
+        catch (SocketTimeoutException ste){
             return null;
         }
         catch (IOException e) {
-            throw new RuntimeException("Could not accept",e);
+            throw new RuntimeException("could not accept connection",e);
         }
-    }
-
-    public SocketServer createSocketServer(SocketServerObserver observer, MessageClientObserver clientObserver) {
-        return new SocketServer(this,observer,clientObserver);
     }
 
     public ServerSocket createServerSocket() {
         try {
-            return new ServerSocket(9090);
+
+            ServerSocket serverSocket = new ServerSocket(9090);
+            serverSocket.setSoTimeout(200);
+            return serverSocket;
         } catch (IOException e) {
             throw new RuntimeException("Could not create ",e);
         }
