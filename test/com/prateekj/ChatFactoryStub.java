@@ -13,7 +13,7 @@ public class ChatFactoryStub extends ChatFactory{
 
 
     @Override
-    public MessageChannel connectTo(String serverAddress, MessageChannelObserver observer) {
+    public MessageChannel connectTo(String serverAddress, MessageChannelListener observer) {
         return channel;
     }
 

@@ -7,12 +7,13 @@ import java.net.SocketTimeoutException;
 
 public class MessageChannel {
     private final Socket socket;
-    private MessageChannelObserver observer;
+    private MessageChannelListener listener;
     private boolean keepRunning = false;
     private Thread readThread;
     private final Runnable infiniteReadLoop = new Runnable() {
         @Override
         public void run() {
+            keepRunning = true;
             while (keepRunning)
                 checkForMessage();
         }
@@ -22,10 +23,9 @@ public class MessageChannel {
         this.socket = socket;
     }
 
-    public void startListeningForMessages(MessageChannelObserver observer) {
-        waitForStoppingExistingThread();
-        keepRunning = true;
-        this.observer = observer;
+    public void startListeningForMessages(MessageChannelListener listener) {
+        stopRunningThread();
+        this.listener = listener;
         readThread = new Thread(infiniteReadLoop);
         readThread.start();
     }
@@ -35,17 +35,17 @@ public class MessageChannel {
         try {
             InputStream inputStream = socket.getInputStream();
             ObjectInputStream objectInputStream = new ObjectInputStream(inputStream);
-            observer.onMessage(this, objectInputStream.readObject());
+            listener.onMessage(this, objectInputStream.readObject());
         } catch (SocketTimeoutException ste) {
         } catch (SocketException se) {
             if (se.getMessage().contains("Connection reset"))
-                observer.onConnectionClosed(this);
+                listener.onConnectionClosed(this);
         } catch (EOFException eofe) {
-            observer.onConnectionClosed(this);
+            listener.onConnectionClosed(this);
         } catch (IOException e) {
-            observer.onError(this, e);
+            listener.onError(this, e);
         } catch (ClassNotFoundException e) {
-            observer.onError(this, e);
+            listener.onError(this, e);
         }
     }
 
@@ -57,23 +57,23 @@ public class MessageChannel {
         }
     }
 
-    private void waitForStoppingExistingThread() {
-        if (keepRunning) {
-            keepRunning = false;
-            try {
+    private void stopRunningThread() {
+        if (!keepRunning) return;
+        keepRunning = false;
+        try {
+            if(!Thread.currentThread().equals(readThread))
                 readThread.join();
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
         }
     }
 
     public void stop() {
-        waitForStoppingExistingThread();
+        stopRunningThread();
         try {
             socket.close();
         } catch (IOException e) {
-            observer.onError(this, e);
+            listener.onError(this, e);
         }
     }
 }

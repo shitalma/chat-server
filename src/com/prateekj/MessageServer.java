@@ -5,7 +5,7 @@ import java.net.ServerSocket;
 
 public class MessageServer {
     private final ChatFactory chatFactory;
-    private MessageServerObserver observer;
+    private MessageServerListener listener;
     private ServerSocket serverSocket;
     private boolean keepRunning = false;
     private final Runnable runnable = new Runnable() {
@@ -17,15 +17,16 @@ public class MessageServer {
     private Thread acceptThread;
 
     private void infiniteAcceptLoop() {
-        try {
-            while (keepRunning) {
-                MessageChannel channel = chatFactory.acceptFrom(serverSocket);
-                if(channel!=null)
-                    observer.onNewConnection(channel);
-            }
-        } catch (Exception e) {
-            observer.onError(e);
+        keepRunning = true;
+        while (keepRunning) {
+            checkForNewConnection();
         }
+    }
+
+    private void checkForNewConnection() {
+        MessageChannel channel = chatFactory.acceptFrom(serverSocket);
+        if (channel != null)
+            listener.onNewConnection(channel);
     }
 
     public MessageServer(ChatFactory chatFactory) {
@@ -33,10 +34,9 @@ public class MessageServer {
         serverSocket = chatFactory.createServerSocket();
     }
 
-    public void startListeningForConnections(MessageServerObserver observer) {
-        waitForStoppingExistingThread();
-        keepRunning = true;
-        this.observer = observer;
+    public void startListeningForConnections(MessageServerListener listener) {
+        stopRunningThread();
+        this.listener = listener;
         startAcceptThread();
     }
 
@@ -45,7 +45,7 @@ public class MessageServer {
         acceptThread.start();
     }
 
-    private void waitForStoppingExistingThread() {
+    private void stopRunningThread() {
         if (keepRunning) {
             keepRunning = false;
             try {
@@ -57,11 +57,11 @@ public class MessageServer {
     }
 
     public void stop() {
-        waitForStoppingExistingThread();
+        stopRunningThread();
         try {
             serverSocket.close();
         } catch (IOException e) {
-            observer.onError(e);
+            listener.onError(e);
         }
     }
 }

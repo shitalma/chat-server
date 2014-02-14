@@ -3,7 +3,7 @@ package com.prateekj;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ChatServer implements MessageServerObserver, MessageChannelObserver, UserInputReaderObserver {
+public class ChatServer implements MessageServerListener, MessageChannelListener, UserInputReaderObserver {
 
     private final UserInputReader userInputReader;
     private final MessageServer messageServer;

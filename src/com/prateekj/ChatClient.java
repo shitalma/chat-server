@@ -1,6 +1,6 @@
 package com.prateekj;
 
-public class ChatClient implements UserInputReaderObserver, MessageChannelObserver {
+public class ChatClient implements UserInputReaderObserver, MessageChannelListener {
     private final UserInputReader inputReader;
     private final UserDisplay userDisplay;
     private ChatFactory factory;
@@ -39,7 +39,8 @@ public class ChatClient implements UserInputReaderObserver, MessageChannelObserv
     }
 
     @Override
-    public void onConnectionClosed(MessageChannel client) {
+    public void onConnectionClosed(MessageChannel channel) {
+        channel.stop();
         userDisplay.exit();
     }
 }
